@@ -33,6 +33,8 @@ export function HomeScreen() {
   const [group, setGroup] = useState<GroupFilter>("All");
   const [league, setLeague] = useState<string | null>(null);
   const [query, setQuery] = useState(params.get("q") ?? "");
+  const [filtersOpen, setFiltersOpen] = useState(initialWhen === "upcoming" || initialWhen === "all");
+  const searchRef = useRef<HTMLInputElement>(null);
   const [events, setEvents] = useState<MatchEvent[]>([]);
   const [leagues, setLeagues] = useState<League[]>([]);
   const loadedRef = useRef<string[]>([]);
@@ -50,6 +52,10 @@ export function HomeScreen() {
           fetch("/api/sports"),
           fetch("/api/odds?featured=1"),
         ]);
+        if (!sportsResponse.ok || !oddsResponse.ok) {
+          if (!cancel) setNotice("Live odds could not be loaded. Refresh the page.");
+          return;
+        }
         const sports = (await sportsResponse.json()) as SportsPayload;
         const odds = (await oddsResponse.json()) as OddsPayload;
         const featuredKeys = [...new Set(odds.events.map((event) => event.sportKey))];
@@ -65,6 +71,10 @@ export function HomeScreen() {
         loadedRef.current = [...new Set([...featuredKeys, ...extraKeys])];
         setLeagues(sports.leagues);
         setEvents(merged);
+        if (initial && merged.length > 0 && !merged.some((event) => isInPlay(event))) {
+          setWhen("upcoming");
+          setFiltersOpen(true);
+        }
         setNotice(odds.notice ?? extraPayloads.find((payload) => payload.notice)?.notice ?? null);
         settle(merged);
       } finally {
@@ -81,6 +91,10 @@ export function HomeScreen() {
       window.clearInterval(timer);
     };
   }, [settle]);
+
+  useEffect(() => {
+    if (params.get("focus") === "search") searchRef.current?.focus();
+  }, [params]);
 
   async function openLeague(key: string) {
     setLeague(key);
@@ -127,22 +141,39 @@ export function HomeScreen() {
   return (
     <Shell>
       <div className="flex flex-wrap items-center gap-2 bg-[#1c1c1c] px-3 py-2 text-white sm:px-6">
-        {(
-          [
-            ["inplay", "In-Play"],
-            ["upcoming", "Upcoming"],
-            ["all", "All"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setWhen(id)}
-            className={`rounded px-3 py-1 text-sm font-semibold ${when === id ? "bg-[#0c7a45]" : "bg-[#333]"}`}
-          >
-            {label}
-          </button>
-        ))}
+        <button
+          type="button"
+          onClick={() => setWhen("inplay")}
+          className={`rounded px-3 py-1 text-sm font-semibold ${when === "inplay" ? "bg-[#0c7a45]" : "bg-[#333]"}`}
+        >
+          In-Play
+        </button>
+        <button
+          type="button"
+          aria-label="More filters"
+          aria-pressed={filtersOpen}
+          onClick={() => setFiltersOpen((open) => !open)}
+          className={`rounded px-2 py-1 text-sm ${filtersOpen ? "bg-[#0c7a45]" : "bg-[#333]"}`}
+        >
+          ▽
+        </button>
+        {filtersOpen
+          ? (
+              [
+                ["upcoming", "Upcoming"],
+                ["all", "All"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setWhen(id)}
+                className={`rounded px-3 py-1 text-sm font-semibold ${when === id ? "bg-[#0c7a45]" : "bg-[#333]"}`}
+              >
+                {label}
+              </button>
+            ))
+          : null}
         <button
           type="button"
           onClick={() => router.push("/bets")}
@@ -153,6 +184,8 @@ export function HomeScreen() {
       </div>
       <div className="border-b border-[#e5e5e5] px-3 py-2 sm:px-6">
         <input
+          ref={searchRef}
+          id="match-search"
           aria-label="Search players or teams"
           value={query}
           onChange={(event) => setQuery(event.target.value)}

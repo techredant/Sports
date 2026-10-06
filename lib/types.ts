@@ -1,4 +1,4 @@
-export const SPORT_GROUPS = ["Tennis", "Soccer", "Basketball", "Cricket"] as const;
+export const SPORT_GROUPS = ["Soccer", "Cricket", "Tennis"] as const;
 
 export type SportGroup = (typeof SPORT_GROUPS)[number];
 

@@ -115,14 +115,20 @@ export function MarketScreen({
         <Link href="/?when=inplay" className="rounded bg-[#0c7a45] px-3 py-1 text-sm font-semibold">
           In-Play
         </Link>
-        <Link href="/bets" className="ml-auto text-xs font-semibold text-yellow-300">
-          Open bets ({openCount})
+        <Link href="/?focus=search" aria-label="More filters" className="rounded bg-[#333] px-2 py-1 text-sm">
+          ▽
         </Link>
       </div>
       <div
         className="mt-3 ml-3 flex h-10 w-[min(18rem,72%)] items-center gap-2 bg-[#128a5a] px-4 font-semibold text-white sm:ml-6"
         style={{ clipPath: "polygon(0 0, 92% 0, 100% 100%, 0 100%)" }}
       >
+        <span aria-hidden className="grid grid-cols-2 gap-0.5">
+          <span className="h-1.5 w-1.5 bg-white" />
+          <span className="h-1.5 w-1.5 bg-white" />
+          <span className="h-1.5 w-1.5 bg-white" />
+          <span className="h-1.5 w-1.5 bg-white" />
+        </span>
         Main Market
       </div>
       <div className="mt-3 grid grid-cols-2 text-sm font-bold text-white">
@@ -211,6 +217,7 @@ export function MarketScreen({
                   }}
                   showInlineSlip
                 />
+                <WinStrip event={event} onCashout={() => setTab("bets")} />
               </>
             ) : null}
           </div>
@@ -237,5 +244,29 @@ export function MarketScreen({
         </div>
       )}
     </Shell>
+  );
+}
+
+function WinStrip({ event, onCashout }: { event: MatchEvent; onCashout: () => void }) {
+  const market = event.markets.find((item) => item.key === "h2h");
+  if (!market) return null;
+  return (
+    <section className="border-t border-[#ececec] px-3 py-3 sm:px-6">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <h2 className="font-bold">Who Will Win The Match?</h2>
+        <button type="button" onClick={onCashout} className="rounded bg-[#e8831a] px-2 py-1 text-xs font-bold text-white">
+          CASHOUT
+        </button>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {market.runners.map((runner) => (
+          <div key={runner.name} className="rounded-sm bg-[#d9eefb] px-3 py-2">
+            <p className="truncate text-sm font-semibold">{runner.name}</p>
+            <p className="text-lg font-bold">{runner.back.toFixed(2)}</p>
+            <p className="truncate text-[10px] text-[#555]">{runner.bookmaker}</p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

@@ -11,8 +11,29 @@ type Tab = "matched" | "bookmaker" | "totals";
 const TABS: { id: Tab; label: string }[] = [
   { id: "matched", label: "Matched" },
   { id: "bookmaker", label: "Bookmaker" },
-  { id: "totals", label: "Totals" },
+  { id: "totals", label: "Fancy" },
 ];
+
+function averageRows(bets: Bet[]) {
+  const groups = new Map<string, { key: string; selection: string; eventLabel: string; stake: number; weighted: number }>();
+  for (const bet of bets) {
+    const key = `${bet.eventId}|${bet.market}|${bet.selection}|${bet.side}`;
+    const current = groups.get(key) ?? {
+      key,
+      selection: bet.selection,
+      eventLabel: bet.eventLabel,
+      stake: 0,
+      weighted: 0,
+    };
+    current.stake += bet.stake;
+    current.weighted += bet.stake * bet.odds;
+    groups.set(key, current);
+  }
+  return [...groups.values()].map((group) => ({
+    ...group,
+    odds: group.stake > 0 ? Math.round((group.weighted / group.stake) * 100) / 100 : 0,
+  }));
+}
 
 function inTab(bet: Bet, tab: Tab) {
   if (tab === "totals") return bet.market === "totals";
@@ -27,6 +48,7 @@ export function OpenBets() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [averageOdds, setAverageOdds] = useState(false);
   const sportKeys = useMemo(
     () => [...new Set(bets.filter((bet) => bet.status === "open").map((bet) => bet.sportKey))],
     [bets],
@@ -77,8 +99,18 @@ export function OpenBets() {
     setMessage(result.ok ? "Bet cashed out." : result.error);
   }
 
+  const averages = averageRows(visible);
+
   return (
     <div>
+      <label className="flex items-center gap-2 px-3 py-3 text-sm font-semibold sm:px-6">
+        <input
+          type="checkbox"
+          checked={averageOdds}
+          onChange={(event) => setAverageOdds(event.target.checked)}
+        />
+        Average Odds
+      </label>
       <div className="grid grid-cols-3 text-sm font-bold">
         {TABS.map((item) => (
           <button
@@ -100,19 +132,42 @@ export function OpenBets() {
           {tab === "bookmaker"
             ? "No bookmaker bets yet. Open a match and switch to Bookmaker to back a selection."
             : tab === "totals"
-              ? "No totals bets yet."
+              ? "No fancy bets yet."
               : "No matched bets yet. Back or lay a price on a match."}
         </p>
       ) : null}
       {message ? <p className="px-3 pb-2 text-sm font-semibold text-[#0c7a45]">{message}</p> : null}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-      {[...open, ...settled].map((bet) => {
+      {averageOdds
+        ? averages.map((row) => (
+            <article key={row.key} className="border-t border-white bg-[#d9eefb] px-3 py-3 sm:px-6">
+              <p className="text-[10px] font-bold text-[#666]">Selection</p>
+              <p className="font-semibold break-words">{row.selection}</p>
+              <p className="text-[11px] text-[#444]">{row.eventLabel}</p>
+              <p className="mt-2 text-sm">
+                Average odds <span className="font-bold">{formatOdds(row.odds)}</span>
+                {" · "}
+                Stake <span className="font-bold">{formatMoney(row.stake)}</span>
+              </p>
+            </article>
+          ))
+        : null}
+      {!averageOdds
+        ? [...open, ...settled].map((bet) => {
         const gross = bet.status === "open" ? quote(bet) : null;
         return (
           <article
             key={bet.id}
-            className={`border-t border-white px-3 py-3 sm:px-6 ${bet.side === "back" ? "bg-[#d9eefb]" : "bg-[#f8d5df]"}`}
+            className={`relative border-t border-white py-3 pr-3 pl-8 sm:pr-6 ${bet.side === "back" ? "bg-[#d9eefb]" : "bg-[#f8d5df]"}`}
           >
+            {bet.status === "open" && gross != null ? (
+              <span
+              aria-label="Cash out available"
+              className="absolute top-2 left-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#0c7a45] text-[10px] font-black text-white"
+            >
+              C
+            </span>
+            ) : null}
             <div className="grid grid-cols-2 items-start gap-2 text-sm">
               <div>
                 <p className="text-[10px] font-bold text-[#666]">Date/Time</p>
@@ -166,7 +221,8 @@ export function OpenBets() {
             </div>
           </article>
         );
-      })}
+      })
+        : null}
       </div>
       <div className="px-3 py-4">
         {resetting ? (

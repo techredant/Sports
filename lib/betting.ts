@@ -72,7 +72,7 @@ export function selectionResult(bet: Bet, event: MatchEvent): SelectionResult {
   if (!event.completed || !event.scores || event.scores.length < 2) return "pending";
 
   if (bet.market === "totals") {
-    if (event.sportGroup !== "Soccer" && event.sportGroup !== "Basketball") return "pending";
+    if (event.sportGroup !== "Soccer") return "pending";
     const values = event.scores.map((line) => Number(line.score));
     if (values.some((value) => !Number.isFinite(value))) return "pending";
     const total = values.reduce((sum, value) => sum + value, 0);

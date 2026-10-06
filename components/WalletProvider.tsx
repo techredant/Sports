@@ -47,6 +47,8 @@ type WalletApi = {
   openCount: number;
   placeBet: (input: PlaceBetInput) => Result;
   cashOut: (betId: string, gross: number) => Result;
+  credit: (amount: number) => Result;
+  withdraw: (amount: number) => Result;
   settle: (events: MatchEvent[]) => void;
   setQuickStakes: (stakes: number[]) => Result;
   toggleFavorite: (eventId: string) => void;
@@ -141,6 +143,38 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     [commit],
   );
 
+  const credit = useCallback(
+    (amount: number): Result => {
+      const current = stateRef.current;
+      if (!current.ready) return { ok: false, error: "Wallet is still loading." };
+      const credits = roundMoney(amount);
+      if (!Number.isFinite(credits) || credits < MIN_STAKE || credits > 1000) {
+        return { ok: false, error: "Deposit must be from 10 to 1,000." };
+      }
+      const data = toData(current);
+      commit({ ...data, balance: roundMoney(data.balance + credits) });
+      return { ok: true };
+    },
+    [commit],
+  );
+
+  const withdraw = useCallback(
+    (amount: number): Result => {
+      const current = stateRef.current;
+      if (!current.ready) return { ok: false, error: "Wallet is still loading." };
+      const payout = roundMoney(amount);
+      if (!Number.isFinite(payout) || payout < MIN_STAKE || payout > 1000) {
+        return { ok: false, error: "Withdrawal must be from 10 to 1,000." };
+      }
+      const data = toData(current);
+      const available = availableBalance(data.balance, data.bets);
+      if (payout - available > 0.001) return { ok: false, error: "Not enough available balance." };
+      commit({ ...data, balance: roundMoney(data.balance - payout) });
+      return { ok: true };
+    },
+    [commit],
+  );
+
   const cashOut = useCallback(
     (betId: string, gross: number): Result => {
       const current = stateRef.current;
@@ -226,12 +260,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       openCount: state.bets.filter((bet) => bet.status === "open").length,
       placeBet,
       cashOut,
+      credit,
+      withdraw,
       settle,
       setQuickStakes,
       toggleFavorite,
       reset,
     }),
-    [state, placeBet, cashOut, settle, setQuickStakes, toggleFavorite, reset],
+    [state, placeBet, cashOut, credit, withdraw, settle, setQuickStakes, toggleFavorite, reset],
   );
 
   return <WalletContext.Provider value={api}>{children}</WalletContext.Provider>;

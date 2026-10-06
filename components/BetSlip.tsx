@@ -154,6 +154,9 @@ export function BetSlip({
           className="h-11 min-w-0 flex-1 rounded border border-[#9ec3d6] bg-white px-3 text-right text-lg font-semibold"
         />
       </div>
+      <p className="mt-2 text-right text-xs font-semibold text-[#555]">
+        Min : {MIN_STAKE} | Max : {formatMoney(ceiling)}
+      </p>
       <p className="mt-2 text-xs text-[#24556d]">
         {draft.acceptAny
           ? `Places at the current price ${formatOdds(live)}.`

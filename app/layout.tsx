@@ -9,7 +9,7 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Linehouse",
+  title: "Lotus365",
   description: "Demo sports exchange with live odds and simulated bets.",
 };
 

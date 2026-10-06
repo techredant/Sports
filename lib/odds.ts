@@ -6,6 +6,7 @@ import {
   groupFromKey,
   sampleEventsFor,
 } from "@/lib/mock";
+import { SPORT_GROUPS } from "@/lib/types";
 import type {
   League,
   Market,
@@ -22,10 +23,9 @@ const API_BASE = "https://api.the-odds-api.com/v4";
 const TTL_MS = 60_000;
 
 const PREFERRED: Record<SportGroup, string[]> = {
-  Soccer: ["soccer_epl", "soccer_uefa_champs_league", "soccer_spain_la_liga", "soccer_usa_mls"],
-  Basketball: ["basketball_nba", "basketball_euroleague", "basketball_ncaab"],
+  Cricket: ["cricket_ipl", "cricket_international_t20", "cricket_odi", "cricket_test_match"],
+  Soccer: ["soccer_india_super_league", "soccer_epl", "soccer_uefa_champs_league"],
   Tennis: ["tennis_atp", "tennis_wta"],
-  Cricket: ["cricket_ipl", "cricket_international_t20", "cricket_big_bash", "cricket_test_match"],
 };
 
 type CacheEntry = { at: number; value: unknown };
@@ -81,7 +81,6 @@ async function apiGet<T>(path: string, params: Record<string, string> = {}): Pro
 
 function totalsTitle(group: SportGroup) {
   if (group === "Soccer") return "Total Goals";
-  if (group === "Basketball") return "Total Points";
   return "Totals";
 }
 
@@ -222,6 +221,11 @@ async function fetchScores(sport: string) {
   );
 }
 
+function leagueRank(league: League) {
+  const index = PREFERRED[league.group].indexOf(league.key);
+  return index === -1 ? PREFERRED[league.group].length : index;
+}
+
 function toLeagues(raw: ApiSport[]): League[] {
   return raw
     .filter((sport) => !sport.has_outrights && groupFromKey(sport.key) && sport.active)
@@ -230,19 +234,55 @@ function toLeagues(raw: ApiSport[]): League[] {
       group: groupFromKey(sport.key) as SportGroup,
       title: sport.title,
       active: sport.active,
-    }));
+    }))
+    .sort((a, b) => {
+      const byGroup = SPORT_GROUPS.indexOf(a.group) - SPORT_GROUPS.indexOf(b.group);
+      if (byGroup !== 0) return byGroup;
+      const byRank = leagueRank(a) - leagueRank(b);
+      if (byRank !== 0) return byRank;
+      return a.title.localeCompare(b.title);
+    });
+}
+
+const INDIA_MARKERS = [
+  "india",
+  "mumbai indians",
+  "chennai super kings",
+  "kolkata knight riders",
+  "royal challengers",
+  "delhi capitals",
+  "punjab kings",
+  "rajasthan royals",
+  "sunrisers",
+  "gujarat titans",
+  "lucknow super giants",
+  "mohun bagan",
+  "mumbai city",
+  "bengaluru",
+  "kerala blasters",
+  "odisha fc",
+  "fc goa",
+  "northeast united",
+  "chennaiyin",
+  "east bengal",
+  "jamshedpur",
+  "hyderabad fc",
+  "punjab fc",
+  "sumit nagal",
+  "rohan bopanna",
+  "yuki bhambri",
+  "ramkumar ramanathan",
+];
+
+export function involvesIndia(event: Pick<MatchEvent, "home" | "away" | "sportKey">) {
+  if (event.sportKey === "cricket_ipl" || event.sportKey === "soccer_india_super_league") return true;
+  const text = `${event.home} ${event.away}`.toLowerCase();
+  return INDIA_MARKERS.some((marker) => text.includes(marker));
 }
 
 export function pickFeatured(leagues: League[]) {
-  const keys: string[] = [];
-  const groups: SportGroup[] = ["Soccer", "Basketball", "Tennis", "Cricket"];
-  for (const group of groups) {
-    const inGroup = leagues.filter((league) => league.group === group && league.active);
-    const preferred = PREFERRED[group].find((key) => inGroup.some((league) => league.key === key));
-    const chosen = preferred ?? inGroup[0]?.key;
-    if (chosen) keys.push(chosen);
-  }
-  return keys;
+  const active = new Set(leagues.filter((league) => league.active).map((league) => league.key));
+  return [...PREFERRED.Cricket, ...PREFERRED.Soccer.slice(0, 1), ...PREFERRED.Tennis].filter((key) => active.has(key));
 }
 
 export async function getLeagues(): Promise<SportsPayload> {
@@ -312,12 +352,12 @@ export async function getFeatured(): Promise<OddsPayload> {
     }
     const keys = pickFeatured(leagues);
     const batches = await Promise.all(keys.map((key) => getOddsForSport(key)));
-    const events = batches.flatMap((batch) => batch.events);
+    const events = batches.flatMap((batch) => batch.events).filter(involvesIndia);
     if (!events.length) {
       return {
-        events: getSampleEvents(),
-        source: "sample",
-        notice: "Live odds are unavailable. Showing sample matches.",
+        events: [],
+        source: "live",
+        notice: "No India matches with odds are on the board right now. Open another league to see more soccer, cricket, or tennis.",
       };
     }
     return { events, source: "live" };

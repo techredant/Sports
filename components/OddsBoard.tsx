@@ -1,6 +1,7 @@
 "use client";
 
-import { formatOdds } from "@/lib/format";
+import { formatMoney, formatOdds } from "@/lib/format";
+import { useWallet } from "@/components/WalletProvider";
 import type { BetChannel, BetSide, Market, MarketKey, Runner } from "@/lib/types";
 import type { SlipDraft } from "@/components/BetSlip";
 import { BetSlip } from "@/components/BetSlip";
@@ -97,11 +98,20 @@ function MarketBlock({
   showInlineSlip: boolean;
 }) {
   const layHidden = channel === "bookmaker" && market.key === "h2h";
+  const { bets } = useWallet();
+  const openStake = bets
+    .filter((bet) => bet.status === "open" && bet.eventId === event.id && bet.market === market.key)
+    .reduce((sum, bet) => sum + bet.stake, 0);
 
   return (
     <section className="border-b border-[#e4e4e4]">
       <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2 text-xs font-bold text-[#6b6b6b] sm:px-6">
-        <span className="text-sm text-black">{market.title}</span>
+        <span className="flex items-center gap-2 text-sm text-black">
+          {market.title}
+          {openStake > 0 ? (
+            <span className="rounded-full bg-[#e56b86] px-2 py-0.5 text-[11px] text-white">{formatMoney(openStake)}</span>
+          ) : null}
+        </span>
         <span className="w-16 text-center sm:w-[4.75rem]">BACK</span>
         {layHidden ? <span className="w-16 sm:w-[4.75rem]" /> : <span className="w-16 text-center sm:w-[4.75rem]">LAY</span>}
       </div>
@@ -113,7 +123,7 @@ function MarketBlock({
             <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2 sm:px-6">
               <div className="min-w-0">
                 <p className="truncate font-semibold">{runner.name}</p>
-                <p className="truncate text-xs text-[#0c7a45]">{runner.bookmaker}</p>
+                <p className="truncate text-xs text-[#0c7a45]">→ {runner.bookmaker}</p>
               </div>
               <PriceButton
                 label={runner.name}
