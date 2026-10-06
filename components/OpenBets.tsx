@@ -41,7 +41,7 @@ function inTab(bet: Bet, tab: Tab) {
   return bet.market === "h2h" && bet.channel === "matched";
 }
 
-export function OpenBets() {
+export function OpenBets({ openOnly = false }: { openOnly?: boolean }) {
   const { bets, cashOut, settle, reset, ready } = useWallet();
   const [tab, setTab] = useState<Tab>("matched");
   const [events, setEvents] = useState<MatchEvent[]>([]);
@@ -81,9 +81,9 @@ export function OpenBets() {
     };
   }, [sportKeyList, settle]);
 
-  const visible = bets.filter((bet) => inTab(bet, tab));
+  const visible = openOnly ? bets.filter((bet) => bet.status === "open") : bets.filter((bet) => inTab(bet, tab));
   const open = visible.filter((bet) => bet.status === "open");
-  const settled = visible.filter((bet) => bet.status !== "open");
+  const settled = openOnly ? [] : visible.filter((bet) => bet.status !== "open");
 
   function quote(bet: Bet) {
     const event = events.find((item) => item.id === bet.eventId);
@@ -103,6 +103,9 @@ export function OpenBets() {
 
   return (
     <div>
+      {openOnly ? <h2 className="px-3 pt-4 text-sm font-bold sm:px-6">Open bets</h2> : null}
+      {openOnly ? null : (
+      <>
       <label className="flex items-center gap-2 px-3 py-3 text-sm font-semibold sm:px-6">
         <input
           type="checkbox"
@@ -126,10 +129,14 @@ export function OpenBets() {
           </button>
         ))}
       </div>
+      </>
+      )}
       {!ready ? <p className="px-3 py-6 text-sm sm:px-6">Loading bets…</p> : null}
       {ready && visible.length === 0 ? (
         <p className="px-3 py-6 text-sm text-[#555]">
-          {tab === "bookmaker"
+          {openOnly
+            ? "No open bets."
+            : tab === "bookmaker"
             ? "No bookmaker bets yet. Open a match and switch to Bookmaker to back a selection."
             : tab === "totals"
               ? "No fancy bets yet."
@@ -224,6 +231,7 @@ export function OpenBets() {
       })
         : null}
       </div>
+      {openOnly ? null : (
       <div className="px-3 py-4">
         {resetting ? (
           <div className="flex gap-2">
@@ -248,6 +256,7 @@ export function OpenBets() {
           </button>
         )}
       </div>
+      )}
     </div>
   );
 }

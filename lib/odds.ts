@@ -68,14 +68,33 @@ async function cached<T>(key: string, loader: () => Promise<T | null>): Promise<
   return value;
 }
 
+export class OddsQuotaError extends Error {
+  constructor() {
+    super("Odds usage quota has been reached.");
+    this.name = "OddsQuotaError";
+  }
+}
+
+let quotaUntil = 0;
+
 async function apiGet<T>(path: string, params: Record<string, string> = {}): Promise<T | null> {
+  if (Date.now() < quotaUntil) throw new OddsQuotaError();
   const key = apiKey();
   if (!key) return null;
   const url = new URL(`${API_BASE}${path}`);
   url.searchParams.set("apiKey", key);
   for (const [name, value] of Object.entries(params)) url.searchParams.set(name, value);
   const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(12_000) });
-  if (!response.ok) return null;
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 429) {
+      const body = await response.text();
+      if (response.status === 429 || body.includes("OUT_OF_USAGE_CREDITS")) {
+        quotaUntil = Date.now() + 30 * 60 * 1000;
+        throw new OddsQuotaError();
+      }
+    }
+    return null;
+  }
   return (await response.json()) as T;
 }
 
@@ -281,8 +300,11 @@ export function involvesIndia(event: Pick<MatchEvent, "home" | "away" | "sportKe
 }
 
 export function pickFeatured(leagues: League[]) {
-  const active = new Set(leagues.filter((league) => league.active).map((league) => league.key));
-  return [...PREFERRED.Cricket, ...PREFERRED.Soccer.slice(0, 1), ...PREFERRED.Tennis].filter((key) => active.has(key));
+  const activeLeagues = leagues.filter((league) => league.active);
+  const active = new Set(activeLeagues.map((league) => league.key));
+  const soccer = PREFERRED.Soccer.find((key) => active.has(key));
+  const tennis = activeLeagues.filter((league) => league.group === "Tennis").map((league) => league.key);
+  return [...PREFERRED.Cricket.filter((key) => active.has(key)), ...(soccer ? [soccer] : []), ...tennis.slice(0, 2)];
 }
 
 export async function getLeagues(): Promise<SportsPayload> {
@@ -292,7 +314,8 @@ export async function getLeagues(): Promise<SportsPayload> {
     const leagues = raw ? toLeagues(raw) : [];
     if (!leagues.length) return { leagues: SAMPLE_LEAGUES, source: "sample" };
     return { leagues, source: "live" };
-  } catch {
+  } catch (error) {
+    if (error instanceof OddsQuotaError) throw error;
     return { leagues: SAMPLE_LEAGUES, source: "sample" };
   }
 }
@@ -317,7 +340,8 @@ export async function getScores(sport: string): Promise<ScoresPayload> {
       scores: score.scores ?? undefined,
     }));
     return { scores, source: "live" };
-  } catch {
+  } catch (error) {
+    if (error instanceof OddsQuotaError) throw error;
     return { scores: [], source: "live" };
   }
 }
@@ -336,7 +360,8 @@ export async function getOddsForSport(sport: string): Promise<OddsPayload> {
       return { events: [], source: "live", notice: "Odds are unavailable for this league." };
     }
     return { events: mergeScores(normalizeEvents(rawOdds), rawScores ?? []), source: "live" };
-  } catch {
+  } catch (error) {
+    if (error instanceof OddsQuotaError) throw error;
     return { events: [], source: "live", notice: "Odds are unavailable for this league." };
   }
 }
@@ -352,20 +377,27 @@ export async function getFeatured(): Promise<OddsPayload> {
     }
     const keys = pickFeatured(leagues);
     const batches = await Promise.all(keys.map((key) => getOddsForSport(key)));
-    const events = batches.flatMap((batch) => batch.events).filter(involvesIndia);
+    const events = batches.flatMap((batch) => batch.events).sort((a, b) => {
+      const india = Number(involvesIndia(b)) - Number(involvesIndia(a));
+      if (india !== 0) return india;
+      return new Date(a.commenceTime).getTime() - new Date(b.commenceTime).getTime();
+    });
     if (!events.length) {
       return {
         events: [],
         source: "live",
-        notice: "No India matches with odds are on the board right now. Open another league to see more soccer, cricket, or tennis.",
+        notice: "No matches with odds are on the board right now.",
       };
     }
     return { events, source: "live" };
-  } catch {
+  } catch (error) {
     return {
       events: getSampleEvents(),
       source: "sample",
-      notice: "Live odds are unavailable. Showing sample matches.",
+      notice:
+        error instanceof OddsQuotaError
+          ? "The odds quota is used up. Showing sample matches."
+          : "Live odds are unavailable. Showing sample matches.",
     };
   }
 }

@@ -94,6 +94,59 @@ export function getSampleEvents(now = Date.now()): MatchEvent[] {
         ]),
       ],
     }),
+    base({
+      id: "sample-isl-upcoming",
+      sportKey: "soccer_india_super_league",
+      sportGroup: "Soccer",
+      sportTitle: "Indian Super League",
+      commenceTime: at(8),
+      home: "Bengaluru FC",
+      away: "Kerala Blasters",
+      completed: false,
+      markets: [
+        market("h2h", "Match Odds", [
+          runner("Bengaluru FC", 2.45, "Sample Book"),
+          runner("Draw", 3.2, "Sample Book"),
+          runner("Kerala Blasters", 2.9, "Sample Book"),
+        ]),
+        market("totals", "Total Goals", [
+          runner("Over 2.5", 2.05, "Sample Book"),
+          runner("Under 2.5", 1.78, "Sample Book"),
+        ]),
+      ],
+    }),
+    base({
+      id: "sample-cricket-upcoming",
+      sportKey: "cricket_international_t20",
+      sportGroup: "Cricket",
+      sportTitle: "International Twenty20",
+      commenceTime: at(30),
+      home: "India",
+      away: "West Indies",
+      completed: false,
+      markets: [
+        market("h2h", "Match Odds", [
+          runner("India", 1.22, "Sample Book"),
+          runner("West Indies", 4.4, "Sample Book"),
+        ]),
+      ],
+    }),
+    base({
+      id: "sample-tennis-upcoming",
+      sportKey: "tennis_atp",
+      sportGroup: "Tennis",
+      sportTitle: "ATP",
+      commenceTime: at(20),
+      home: "Sumit Nagal",
+      away: "Carlos Alcaraz",
+      completed: false,
+      markets: [
+        market("h2h", "Match Odds", [
+          runner("Sumit Nagal", 6.5, "Sample Book"),
+          runner("Carlos Alcaraz", 1.12, "Sample Book"),
+        ]),
+      ],
+    }),
   ];
 }
 
