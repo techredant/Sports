@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { roundOdds } from "@/lib/betting";
 import Link from "next/link";
+import { cashOutGross, oppositePrice, roundOdds } from "@/lib/betting";
 import { eventStatus, isInPlay, matchScore } from "@/lib/format";
 import type { BetChannel, BetSide, MarketKey, MatchEvent, OddsPayload, Runner } from "@/lib/types";
 import { BetSlip, type SlipDraft } from "@/components/BetSlip";
@@ -248,13 +248,27 @@ export function MarketScreen({
 }
 
 function WinStrip({ event, onCashout }: { event: MatchEvent; onCashout: () => void }) {
+  const { bets } = useWallet();
   const market = event.markets.find((item) => item.key === "h2h");
+  const canCashOut = bets.some((bet) => {
+    if (bet.status !== "open" || bet.eventId !== event.id) return false;
+    const price = oppositePrice(event, bet);
+    if (price == null) return false;
+    return cashOutGross(bet, price) > 0;
+  });
   if (!market) return null;
   return (
     <section className="border-t border-[#ececec] px-3 py-3 sm:px-6">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <h2 className="font-bold">Who Will Win The Match?</h2>
-        <button type="button" onClick={onCashout} className="rounded bg-[#e8831a] px-2 py-1 text-xs font-bold text-white">
+        <button
+          type="button"
+          disabled={!canCashOut}
+          onClick={onCashout}
+          className={`rounded px-2 py-1 text-xs font-bold ${
+            canCashOut ? "bg-[#e8831a] text-white" : "cursor-not-allowed bg-[#d0d0d0] text-[#777]"
+          }`}
+        >
           CASHOUT
         </button>
       </div>

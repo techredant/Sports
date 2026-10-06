@@ -240,7 +240,7 @@ export function OpenBets({ openOnly = false }: { openOnly?: boolean }) {
               onClick={() => {
                 reset();
                 setResetting(false);
-                setMessage("Demo balance restored.");
+                setMessage("Balance restored.");
               }}
               className="rounded bg-[#e10600] px-3 py-2 text-sm font-bold text-white"
             >
@@ -252,7 +252,7 @@ export function OpenBets({ openOnly = false }: { openOnly?: boolean }) {
           </div>
         ) : (
           <button type="button" onClick={() => setResetting(true)} className="text-sm text-[#666] underline">
-            Reset demo balance
+            Reset balance
           </button>
         )}
       </div>

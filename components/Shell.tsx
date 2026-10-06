@@ -54,13 +54,8 @@ export function Shell({
           </Link>
         </div>
       </header>
-      <div className="relative mx-auto min-h-[calc(100vh-3.5rem)] w-full max-w-7xl bg-white max-sm:pr-10 sm:my-4 sm:min-h-[calc(100vh-5.5rem)] sm:rounded-lg sm:shadow-sm">
+      <div className="relative mx-auto min-h-[calc(100vh-3.5rem)] w-full max-w-7xl bg-white sm:my-4 sm:min-h-[calc(100vh-5.5rem)] sm:rounded-lg sm:shadow-sm">
         {children}
-      </div>
-      <div className="pointer-events-none fixed top-1/3 right-0 z-40">
-        <div className="rounded-l bg-[#0c7a45] px-1.5 py-3 text-[11px] font-bold tracking-wide text-white [writing-mode:vertical-rl]">
-          This is Demo ID
-        </div>
       </div>
     </div>
   );

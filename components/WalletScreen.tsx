@@ -128,7 +128,7 @@ export function WalletScreen() {
           setError(result.error);
           return;
         }
-        setMessage(`Added ${formatMoney(payload.amount)} demo credits from PayPal sandbox.`);
+        setMessage(`Added ${formatMoney(payload.amount)} credits.`);
       } catch {
         if (!cancel) setError("PayPal sandbox did not respond.");
       } finally {
@@ -185,7 +185,7 @@ export function WalletScreen() {
                 setError(result.error);
                 return;
               }
-              setMessage(`Added ${formatMoney(payload.amount)} demo credits from PayPal sandbox.`);
+              setMessage(`Added ${formatMoney(payload.amount)} credits.`);
             } catch {
               setError("PayPal sandbox did not respond.");
             } finally {
@@ -252,7 +252,7 @@ export function WalletScreen() {
     <Shell backHref="/">
       <div className="bg-[#0c7a45] px-3 py-3 font-bold text-white sm:rounded-t-lg sm:px-6">Wallet</div>
       <div className="space-y-4 px-3 py-4 text-sm sm:px-6">
-        <p>PayPal sandbox only. 1 demo credit is 1.00 USD. Limits are {MIN} to {formatMoney(MAX)} per payment.</p>
+        <p>1 credit is 1.00 USD. Limits are {MIN} to {formatMoney(MAX)} per payment.</p>
         <p>
           Available <span className="font-bold">{ready ? formatMoney(available) : "…"}</span>
           {" · "}

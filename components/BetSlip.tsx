@@ -107,10 +107,10 @@ export function BetSlip({
           className="flex items-center gap-2 font-semibold"
         >
           <span
-            className={`relative h-6 w-11 rounded-full ${draft.acceptAny ? "bg-[#0c7a45]" : "bg-neutral-400"}`}
+            className={`relative inline-block h-6 w-11 shrink-0 overflow-hidden rounded-full ${draft.acceptAny ? "bg-[#0c7a45]" : "bg-neutral-400"}`}
           >
             <span
-              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${draft.acceptAny ? "translate-x-5" : "translate-x-0.5"}`}
+              className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${draft.acceptAny ? "translate-x-4" : "translate-x-0"}`}
             />
           </span>
           Accept any odds

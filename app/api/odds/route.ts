@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getSampleEvents, sampleEventsFor } from "@/lib/mock";
+import { SAMPLE_NOTICE, getSampleEvents, sampleEventsFor } from "@/lib/mock";
 import { getFeatured, getOddsForSport, OddsQuotaError } from "@/lib/odds";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       {
         events: eventId ? events.filter((event) => event.id === eventId) : events,
         source: "sample",
-        notice: "The odds quota is used up. Showing sample matches.",
+        notice: SAMPLE_NOTICE,
       },
       { headers },
     );

@@ -93,13 +93,13 @@ export async function createDepositOrder(
       purchase_units: [
         {
           amount: { currency_code: "USD", value: money(amount) },
-          description: "Lotus365 demo credits",
+          description: "Lotus365 credits",
         },
       ],
       payment_source: {
         paypal: {
           experience_context: {
-            brand_name: "Lotus365 Demo",
+            brand_name: "Lotus365",
             shipping_preference: "NO_SHIPPING",
             user_action: "PAY_NOW",
             return_url: returnUrl,
@@ -169,15 +169,15 @@ export async function withdrawToPaypal(
     body: JSON.stringify({
       sender_batch_header: {
         sender_batch_id: `lotus365_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        email_subject: "Lotus365 demo withdrawal",
-        email_message: "Sandbox withdrawal of demo credits.",
+        email_subject: "Lotus365 withdrawal",
+        email_message: "Lotus365 withdrawal.",
       },
       items: [
         {
           recipient_type: "EMAIL",
           amount: { value: money(amount), currency: "USD" },
           receiver: email,
-          note: "Lotus365 demo withdrawal",
+          note: "Lotus365 withdrawal",
           sender_item_id: `item_${Date.now()}`,
         },
       ],

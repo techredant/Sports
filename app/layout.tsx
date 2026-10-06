@@ -10,7 +10,7 @@ const geist = Geist({
 
 export const metadata: Metadata = {
   title: "Lotus365",
-  description: "Demo sports exchange with live odds and simulated bets.",
+  description: "Lotus365 sports exchange.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

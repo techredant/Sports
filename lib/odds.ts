@@ -19,6 +19,8 @@ import type {
   SportsPayload,
 } from "@/lib/types";
 
+export const USE_ODDS_API = false;
+
 const API_BASE = "https://api.the-odds-api.com/v4";
 const TTL_MS = 60_000;
 
@@ -307,8 +309,16 @@ export function pickFeatured(leagues: League[]) {
   return [...PREFERRED.Cricket.filter((key) => active.has(key)), ...(soccer ? [soccer] : []), ...tennis.slice(0, 2)];
 }
 
+function demoEvents() {
+  return getSampleEvents().sort((a, b) => {
+    const india = Number(involvesIndia(b)) - Number(involvesIndia(a));
+    if (india !== 0) return india;
+    return new Date(a.commenceTime).getTime() - new Date(b.commenceTime).getTime();
+  });
+}
+
 export async function getLeagues(): Promise<SportsPayload> {
-  if (!apiKey()) return { leagues: SAMPLE_LEAGUES, source: "sample" };
+  if (!USE_ODDS_API || !apiKey()) return { leagues: SAMPLE_LEAGUES, source: "sample" };
   try {
     const raw = await fetchSports();
     const leagues = raw ? toLeagues(raw) : [];
@@ -321,7 +331,7 @@ export async function getLeagues(): Promise<SportsPayload> {
 }
 
 export async function getScores(sport: string): Promise<ScoresPayload> {
-  if (!apiKey()) {
+  if (!USE_ODDS_API || !apiKey()) {
     return {
       scores: sampleEventsFor(sport).map((event) => ({
         id: event.id,
@@ -347,7 +357,7 @@ export async function getScores(sport: string): Promise<ScoresPayload> {
 }
 
 export async function getOddsForSport(sport: string): Promise<OddsPayload> {
-  if (!apiKey()) {
+  if (!USE_ODDS_API || !apiKey()) {
     return {
       events: sampleEventsFor(sport),
       source: "sample",
@@ -367,8 +377,8 @@ export async function getOddsForSport(sport: string): Promise<OddsPayload> {
 }
 
 export async function getFeatured(): Promise<OddsPayload> {
-  if (!apiKey()) {
-    return { events: getSampleEvents(), source: "sample", notice: SAMPLE_NOTICE };
+  if (!USE_ODDS_API || !apiKey()) {
+    return { events: demoEvents(), source: "sample", notice: SAMPLE_NOTICE };
   }
   try {
     const { leagues, source } = await getLeagues();
@@ -390,14 +400,7 @@ export async function getFeatured(): Promise<OddsPayload> {
       };
     }
     return { events, source: "live" };
-  } catch (error) {
-    return {
-      events: getSampleEvents(),
-      source: "sample",
-      notice:
-        error instanceof OddsQuotaError
-          ? "The odds quota is used up. Showing sample matches."
-          : "Live odds are unavailable. Showing sample matches.",
-    };
+  } catch {
+    return { events: demoEvents(), source: "sample", notice: SAMPLE_NOTICE };
   }
 }
